@@ -9,7 +9,7 @@ sdlkfjsdkl;ajf;klasdjf;lksadjf;kasjfl;aksdjfkjkdsl;
 
 #design to handle card games
 import random
-
+import numpy as np
 
 class Card():
     
@@ -24,6 +24,9 @@ class Card():
         
     def get_rank(self):
         return self.rank
+    
+    def get_rank_number(self):
+        return self.rank +1
     
     def get_suit(self):
         return self.suit
@@ -133,9 +136,226 @@ class InPlay(Zone):
 
 
 
+class Poker():
+    def rank_counting(self, hand):
+        cards=hand.get_cardlist()
+        ranks=[card.get_rank() for card in cards]
+        ranks,counts=np.unique(ranks,return_counts=True)
+        return list(ranks),list(counts)
+        
+    def is_fullhouse(self,ranks,counts):
+        hand_counts=counts.copy()
+        hand_counts.sort()
+        if hand_counts==[2,3]:
+            return True
+        else:
+            return False
+        
+    def is_fourkind(self,ranks,counts):
+        hand_counts=counts.copy()
+        hand_counts.sort()
+        if hand_counts==[1,4]:
+            return True
+        else:
+            return False
+        
+    def is_threekind(self,ranks,counts):
+        hand_counts=counts.copy()
+        hand_counts.sort()
+        if hand_counts==[1,1,3]:
+            return True
+        else:
+            return False      
+    
+    def is_twopair(self,ranks,counts):
+        hand_counts=counts.copy()
+        hand_counts.sort()
+        if hand_counts==[1,2,2]:
+            return True
+        else:
+            return False        
+    
+    def is_onepair(self,ranks,counts):
+        hand_counts=counts.copy()
+        hand_counts.sort()
+        if hand_counts==[1,1,1,2]:
+            return True
+        else:
+            return False        
+    
+    def is_flush(self,hand):
+        cards=hand.get_cardlist()
+        suits=[card.get_suit() for card in cards]
+        if len(set(suits))==1:
+            return True
+        else:
+            return False
+    
+    def is_straight(self,ranks,counts):
+        card_ranks=ranks.copy()
+        card_ranks.sort()
+        if card_ranks[-1] - card_ranks[0] == 4 and len(set(counts)) == 1:
+            return True
+        else:
+            return False
+            
+    
+    
+    def is_straightflush(self,hand,ranks,counts):
+        if self.is_flush(hand) and self.is_straight(ranks,counts):
+            return True
+        else:
+            return False
+    
+    def high_card_value(self,cards):
+        print(cards)
+        card_values=[card.get_rank_number() for card in cards]
+        card_values.sort(reverse=False)
+        print(card_values)
+        high_card_value=0
+        for i in range(len(card_values)):
+            high_card_value+=card_values[i] * (10 ** (2*i))
+        print(high_card_value)
+        return high_card_value
+        
+    
+    
+    
+    def determine_rank(self,hand):
+        """
+        0 - high card
+        1 - one pair
+        2 - two pair
+        3 - three of a kind
+        4 - straight
+        5 - flush
+        6 - full house
+        7 - four of a kind
+        8 - straight flush
+        9 - royal flush
+
+        Parameters
+        ----------
+        hand : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+        
+        ranks,counts=self.rank_counting(hand)
+        if self.is_onepair(ranks,counts):
+            hand_value=1
+            #high card logic
+        elif self.is_twopair(ranks,counts):
+            """
+            still broken
+            """
+            hand_value=2
+            value_index=counts.index(1)
+            high_rank=ranks[value_index]
+            high_cards=[card for card in hand.get_cardlist() if card.get_rank()==high_rank]
+            key_cards=[card for card in hand.get_cardlist() if card.get_rank()!=high_rank]
+            hand_value+=key_cards[0].get_rank_number()/100
+            hand_value+=self.high_card_value(high_cards)/10000
+        elif self.is_threekind(ranks,counts):
+            hand_value=3
+            value_index=counts.index(3)
+            key_rank=ranks[value_index]
+            high_cards=[card for card in hand.get_cardlist() if card.get_rank()!=key_rank]
+            key_cards=[card for card in hand.get_cardlist() if card.get_rank()==key_rank]
+            print(key_cards)
+            hand_value+=key_cards[0].get_rank_number()/100
+            hand_value+=self.high_card_value(high_cards)/1000000
+        elif self.is_fullhouse(ranks,counts):
+            hand_value=6
+            value_index=counts.index(3)
+            key_rank=ranks[value_index]
+            high_cards=[card for card in hand.get_cardlist() if card.get_rank()!=key_rank]
+            key_cards=[card for card in hand.get_cardlist() if card.get_rank()==key_rank]
+            print(key_cards)
+            hand_value+=key_cards[0].get_rank_number()/100
+            hand_value+=self.high_card_value(high_cards)/1000000
+        elif self.is_fourkind(ranks,counts):
+            hand_value=7
+            value_index=counts.index(4)
+            key_rank=ranks[value_index]
+            high_cards=[card for card in hand.get_cardlist() if card.get_rank()!=key_rank]
+            key_cards=[card for card in hand.get_cardlist() if card.get_rank()==key_rank]
+            hand_value+=key_cards[0].get_rank_number()/100
+            hand_value+=self.high_card_value(high_cards)/10000
+        elif self.is_straightflush(hand,ranks,counts):
+            hand_value=8
+            sorted_ranks=ranks.copy()
+            sorted_ranks.sort()
+            key_card=[card for card in hand.get_cardlist() if card.get_rank()==sorted_ranks[-1]]
+            hand_value+=key_card[0].get_rank_number()/100
+        elif self.is_straight(ranks,counts):
+            hand_value=4
+            sorted_ranks=ranks.copy()
+            sorted_ranks.sort()
+            key_card=[card for card in hand.get_cardlist() if card.get_rank()==sorted_ranks[-1]]
+            hand_value+=key_card[0].get_rank_number()/100
+        elif self.is_flush(hand):
+            hand_value=5
+            sorted_ranks=ranks.copy()
+            sorted_ranks.sort()
+            key_card=[card for card in hand.get_cardlist() if card.get_rank()==sorted_ranks[-1]]
+            hand_value+=key_card[0].get_rank_number()/100
+        else:
+            hand_value=0
+            #high card logic
+        return hand_value
+
+            
+
+
+
+
 class Player():
     def __init__(self,name):
         self.name=name
         self.hand=Hand(name)
         self.discard=Discard(name)
         
+poker=Poker()        
+for x in range(1):     
+    sample_hand=Hand(x)
+#    for i in range(5):
+#       sample_hand._add_card(Card(4,random.))
+    sample_hand._add_card(Card(2,2))
+    sample_hand._add_card(Card(2,1))
+    sample_hand._add_card(Card(2,0))
+    sample_hand._add_card(Card(5,2))
+    sample_hand._add_card(Card(8,3))
+    print(sample_hand.get_cardlist())
+    print(poker.determine_rank(sample_hand))
+    
+    
+    
+    
+    
+    
+"""
+sleeve zone, one card in sleeve that can be swapped out with card in hand
+
+mark cards, see if card has been dealt in future hands
+
+house rules (ai cheat)
+
+changing card in hand
+
+forcing a fold, throwaway hand
+
+wild cards
+
+colluding if more than 2 players at table
+
+watcher not at table who cna give info
+
+chip manipulation
+
+trick shuffling
+"""
